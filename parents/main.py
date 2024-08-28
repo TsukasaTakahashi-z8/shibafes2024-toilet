@@ -9,34 +9,43 @@ import urequests as requests
 
 SSID: str = ""
 PWD: str = ""
-ADDRS: list[str] = [] # e.g. ["192.168.1.1", "192.168.1.2"]; あらかじめ子機で固定しておく。
+ADDRS: list[str] = []  # e.g. ["192.168.1.1", "192.168.1.2"]; あらかじめ子機で固定しておく。
 
-def start_ap() :
+
+def start_ap():
     ap = network.WLAN(network.AP_IF)
     ap.config(essid=SSID, password=PWD)
     ap.active(True)
     ap.config(pm=network.WLAN.PM_POWERSAVE)
-    if ap.isconnected() :
+    if ap.isconnected():
         return 0
-    else :
-        start_ap() # 無限ループ良くないかも
+    else:
+        start_ap()  # 無限ループ良くないかも
 
-def get_sensor_data(ipaddr: str) -> str :
+
+def get_sensor_data(ipaddr: str) -> str:
     # TODO 各子機にリクエスト送って、レスポンスを返却
     return ""
+
+def generate_html():
+    html = '''
+    aiu{}
+    '''.format(utime.localtime())
+
+    return html
 
 # TODO 表示ロジック
 # TODO 記録ロジック
 
-def main() :
+
+def main():
     start_ap()
 
-    while True :
+    while True:
         time.sleep(1)
-        for i in range(len(ADDRS)) :
-            get_sensor_data(ADDRS[i]);
+        for i in range(len(ADDRS)):
+            get_sensor_data(ADDRS[i])
 
 
 if __name__ == "__main__":
     main()
-
