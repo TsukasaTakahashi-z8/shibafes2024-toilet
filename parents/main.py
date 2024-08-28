@@ -9,18 +9,21 @@ import urequests as requests
 
 SSID: str = ""
 PWD: str = ""
+CH: int = 1
 ADDRS: list[str] = []  # e.g. ["192.168.1.1", "192.168.1.2"]; あらかじめ子機で固定しておく。
 
 
 def start_ap():
     ap = network.WLAN(network.AP_IF)
-    ap.config(essid=SSID, password=PWD)
+    ap.config(essid=SSID, password=PWD, channel=CH)
     ap.active(True)
-    ap.config(pm=network.WLAN.PM_POWERSAVE)
-    if ap.isconnected():
-        return 0
-    else:
-        start_ap()  # 無限ループ良くないかも
+    timeout: int = 10
+
+    for i in range(timeout):
+        if ap.active():
+            return 0
+        time.sleep(1)
+    return -1
 
 
 def get_sensor_data(ipaddr: str) -> str:
@@ -39,7 +42,8 @@ def generate_html():
 
 
 def main():
-    start_ap()
+    if start_ap() != 0:
+        return 0
 
     while True:
         time.sleep(1)
