@@ -6,7 +6,6 @@ import _thread
 TOILET_ID = 0  # 各個室のID(1~)
 SSID = ""
 PWD = ""
-MY_IP = "192.168.1.x"  # xにトイレのID
 
 
 class PicoStatus:
@@ -62,8 +61,6 @@ def connect_network():
             indicate_statusled(PicoStatus.WIFI_CONNECTING)
 
         if wlan.isconnected():
-            wlan_status = wlan.ifconfig
-            wlan.ifconfig((MY_IP, wlan_status[1], wlan_status[2], wlan_status[3]))
             return wlan.status()
 
 
@@ -73,11 +70,12 @@ def send_status(status):
 
 def core0():
     global g_restroom_status
+    lock = _thread.allocate_lock()
     while True:
         new_restroom_status = get_restroom_status()
 
         if new_restroom_status != g_restroom_status:
-            with _thread.allocate_lock:
+            with lock:
                 new_restroom_status = g_restroom_status
 
             send_status(new_restroom_status)
@@ -89,7 +87,8 @@ def core1():
 
 
 def main():
-    if connect_network() == network.STAT_GOT_IP:
+    res = connect_network()
+    if res == network.STAT_GOT_IP:
         _thread.start_new_thread(core1, ())
         core0()
     else:
