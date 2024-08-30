@@ -6,6 +6,8 @@ import _thread
 TOILET_ID = 0  # 各個室のID(1~)
 SSID = ""
 PWD = ""
+BLUE_PIN = 13
+RED_PIN = 14
 
 
 class PicoStatus:
@@ -48,7 +50,7 @@ def indicate_statusled(status):
 
 
 def get_restroom_status() -> int:
-    sw: int = Pin(0, Pin.IN, Pin.PULL_UP)  # ==1: vacant, ==0: occupied
+    sw: int = Pin(0, Pin.IN, Pin.PULL_UP).value()  # ==1: vacant, ==0: occupied
     return sw
 
 
@@ -64,21 +66,43 @@ def connect_network():
             return wlan.status()
 
 
+def change_led(state):
+    blue_led = Pin(BLUE_PIN, Pin.OUT)
+    red_led  = Pin(RED_PIN,  Pin.OUT)
+
+    if state == 0:
+        blue_led.off()
+        red_led .on()
+    elif state == 1:
+        blue_led.on()
+        red_led .off()
+    elif state == -1:
+        blue_led.on()
+        red_led .on()
+    else:
+        blue_led.off()
+        red_led .off()
+
+
 def send_status(status):
     pass  # TODO
 
 
 def core0():
     global g_restroom_status
+    change_led(1)  # default
     lock = _thread.allocate_lock()
     while True:
         new_restroom_status = get_restroom_status()
 
-        if new_restroom_status != g_restroom_status:
+        if g_restroom_status != new_restroom_status:
             with lock:
-                new_restroom_status = g_restroom_status
+                g_restroom_status = new_restroom_status
 
+            change_led(new_restroom_status)
             send_status(new_restroom_status)
+
+        time.sleep_ms(100)
 
 
 def core1():
@@ -87,11 +111,13 @@ def core1():
 
 
 def main():
+    change_led(-1)
     res = connect_network()
     if res == network.STAT_GOT_IP:
         _thread.start_new_thread(core1, ())
         core0()
     else:
+        change_led(2)
         while True:
             indicate_statusled(PicoStatus.WIFI_CONECT_FAIL)
 
