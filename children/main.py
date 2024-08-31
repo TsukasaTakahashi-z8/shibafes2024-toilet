@@ -20,7 +20,7 @@ class PicoStatus:
     WIFI_CONECT_FAIL = 2
 
 
-g_restroom_status: int = 1
+g_restroom_state: int = 1
 
 
 def indicate_statusled(status):
@@ -53,7 +53,7 @@ def indicate_statusled(status):
         led.off()
 
 
-def get_restroom_status() -> int:
+def get_restroom_state() -> int:
     sw: int = Pin(0, Pin.IN, Pin.PULL_UP).value()  # ==1: vacant, ==0: occupied
     return sw
 
@@ -88,7 +88,7 @@ def change_led(state):
         red_led .off()
 
 
-def send_status(state):
+def send_state(state):
     data = "id={}&state={}".format(TOILET_ID, str(state))
     soc = socket.socket()
     soc.connect(socket.getaddrinfo(HOST, PORT)[0][-1])
@@ -99,18 +99,18 @@ def send_status(state):
 
 
 def core0():
-    global g_restroom_status
+    global g_restroom_state
     change_led(1)  # default
     lock = _thread.allocate_lock()
     while True:
-        new_restroom_status = get_restroom_status()
+        new_restroom_state = get_restroom_state()
 
-        if g_restroom_status != new_restroom_status:
+        if g_restroom_state != new_restroom_state:
             with lock:
-                g_restroom_status = new_restroom_status
+                g_restroom_state = new_restroom_state
 
-            change_led(new_restroom_status)
-            send_status(new_restroom_status)
+            change_led(new_restroom_state)
+            send_state(new_restroom_state)
 
         time.sleep_ms(100)
 
