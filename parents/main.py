@@ -4,21 +4,17 @@ import socket
 from machine import Pin
 import rp2
 
-# https://micropython-docs-ja.readthedocs.io/ja/latest/library/network.WLAN.html
-# https://makeblock-micropython-api.readthedocs.io/en/latest/public_library/Third-party-libraries/urequests.html
-# https://note.com/nagisa_hoshimori/n/nd621ae39fc55
-# https://qiita.com/IoriGunji/items/7ed9a09c03d5a9693ca0
 
 SSID: str = ""
 PWD: str = ""
 CH: int = 6
 g_state_log: dict[str, dict[int, int]] = {
-    "0": {1, time.time()},
-    "1": {1, time.time()},
-    "2": {1, time.time()},
-    "3": {1, time.time()},
-    "4": {1, time.time()},
-    "5": {1, time.time()},
+    "1": {"state": 1, "time": time.time()},
+    "2": {"state": 1, "time": time.time()},
+    "3": {"state": 1, "time": time.time()},
+    "4": {"state": 1, "time": time.time()},
+    "5": {"state": 1, "time": time.time()},
+    "6": {"state": 1, "time": time.time()},
 }  # "ID": {state, lastchanged time}
 
 
@@ -47,22 +43,29 @@ def open_socket(addr):
 
 def handle_request(con):
     client = con.accept()[0]
-    request = client.recv(256).decode()
+    request = ""
+    while True:
+        request_chunk = client.recv(256)
+        if not request_chunk:
+            break
+        request += request_chunk.decode()
+        if "\r\n\r\n" in request:
+            break
 
     # 文字数から無理やりパラメータ取得
     id = request[-9]
     state = request[-1]
 
     if change_state(id, state) == 0:
-        client.send("HTTP/1.1 200 OK\n\nGood Job!")
+        client.send("HTTP/1.0 200 OK\n\nGood Job!")
     else:
-        client.send("HTTP/1.1 500 Internal Server Error\n\nI'm so sorry...")
+        client.send("HTTP/1.0 500 Internal Server Error\n\nI'm so sorry...")
 
     client.close()
 
 
 def change_state(id: str, state: str):
-    g_state_log[id] = [int(state), time.time()]
+    g_state_log[id] = {"state": int(state), "time": time.time()}
     print(g_state_log)
     return 0
 
