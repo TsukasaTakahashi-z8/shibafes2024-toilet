@@ -1,4 +1,5 @@
 import network
+import socket
 import time
 from machine import Pin
 import _thread
@@ -6,8 +7,11 @@ import _thread
 TOILET_ID = 0  # 各個室のID(1~)
 SSID = ""
 PWD = ""
+URL = "http://192.168.4.1/"
 BLUE_PIN = 13
 RED_PIN = 14
+HOST = "192.168.4.1"
+PORT = 80
 
 
 class PicoStatus:
@@ -62,8 +66,8 @@ def connect_network():
         for _ in range(30):  # 3sec
             indicate_statusled(PicoStatus.WIFI_CONNECTING)
 
-        if wlan.isconnected():
-            return wlan.status()
+            if wlan.isconnected():
+                return wlan.status()
 
 
 def change_led(state):
@@ -84,8 +88,14 @@ def change_led(state):
         red_led .off()
 
 
-def send_status(status):
-    pass  # TODO
+def send_status(state):
+    data = "id={}&state={}".format(TOILET_ID, str(state))
+    soc = socket.socket()
+    soc.connect(socket.getaddrinfo(HOST, PORT)[0][-1])
+    soc.sendall(data.encode())
+    res = soc.recv(256)
+    soc.close()
+    return res.decode()
 
 
 def core0():

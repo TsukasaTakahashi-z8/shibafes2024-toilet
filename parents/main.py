@@ -3,6 +3,7 @@ import time
 import socket
 from machine import Pin
 import rp2
+import gc
 
 
 SSID: str = ""
@@ -42,24 +43,18 @@ def open_socket(addr):
 
 
 def handle_request(con):
+    gc.collect()
     client = con.accept()[0]
-    request = ""
-    while True:
-        request_chunk = client.recv(256)
-        if not request_chunk:
-            break
-        request += request_chunk.decode()
-        if "\r\n\r\n" in request:
-            break
+    request = client.recv(256).decode()
 
     # 文字数から無理やりパラメータ取得
     id = request[-9]
     state = request[-1]
 
     if change_state(id, state) == 0:
-        client.send("HTTP/1.0 200 OK\n\nGood Job!")
+        client.send("200")
     else:
-        client.send("HTTP/1.0 500 Internal Server Error\n\nI'm so sorry...")
+        client.send("500")
 
     client.close()
 
