@@ -3,21 +3,12 @@ import time
 import socket
 from machine import Pin
 import gc
+import _thread
 
 
 SSID: str = ""
 PWD: str = ""
 CH: int = 6
-g_state_log: dict[str, dict[int, int]] = {
-    "1": {"state": -1, "time": time.time()},
-    "2": {"state": -1, "time": time.time()},
-    "3": {"state": -1, "time": time.time()},
-    "4": {"state": -1, "time": time.time()},
-    "5": {"state": -1, "time": time.time()},
-    "6": {"state": -1, "time": time.time()},
-    "7": {"state": -1, "time": time.time()},
-    "8": {"state": -1, "time": time.time()},
-}  # "ID": {state, lastchanged time}
 g_LED = {
     "1": [Pin(17, Pin.OUT), Pin(16, Pin.OUT)],
     "2": [Pin(13, Pin.OUT), Pin(12, Pin.OUT)],
@@ -28,6 +19,8 @@ g_LED = {
     "7": [Pin(26, Pin.OUT), Pin(22, Pin.OUT)],
     "8": [Pin(21, Pin.OUT), Pin(20, Pin.OUT)]
 }
+g_emergency_ids: list[bool] = [False]*8
+lock = _thread.allocate_lock()
 
 
 class PicoStatus:
@@ -143,14 +136,38 @@ def handle_request(con):
 
 
 def change_state(id: str, state: str):
-    g_state_log[id] = {"state": int(state), "time": time.time()}
-    g_LED[id][int(state)].on()
-    g_LED[id][1 - int(state)].off()
-    print(g_state_log)
+    if state == "2":
+        with lock:
+            g_emergency_ids[int(id)-1] = True
+
+    elif state == "0" or state == "1":
+        g_LED[id][int(state)].on()
+        g_LED[id][1 - int(state)].off()
+        with lock:
+            g_emergency_ids[int(id)-1] = False
+    else:
+        g_LED[id][0].on()
+        g_LED[id][1].on()
+
     return 0
 
-# TODO 表示ロジック
-# TODO 記録ロジック
+
+def emergency_led(g_emergency_ids: list[int]):
+    while True:
+        with lock:
+            emergency_ids = g_emergency_ids
+
+        for i in range(1, 8+1):
+            if emergency_ids[i-1]:
+                g_LED[str(i)][0].on()
+                g_LED[str(i)][1].off()
+        time.sleep(0.2)
+
+        for i in range(1, 8+1):
+            if emergency_ids[i-1]:
+                g_LED[str(i)][0].off()
+                g_LED[str(i)][1].off()
+        time.sleep(0.2)
 
 
 def main():
@@ -162,5 +179,5 @@ def main():
         handle_request(con)
 
 
-if __name__ == "__main__":
-    main()
+_thread.start_new_thread(emergency_led, (g_emergency_ids,))
+main()
