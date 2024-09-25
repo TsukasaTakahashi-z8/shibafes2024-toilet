@@ -2,7 +2,6 @@ import network
 import time
 import socket
 from machine import Pin
-import rp2
 import gc
 
 
@@ -10,12 +9,14 @@ SSID: str = ""
 PWD: str = ""
 CH: int = 6
 g_state_log: dict[str, dict[int, int]] = {
-    "1": {"state": 1, "time": time.time()},
-    "2": {"state": 1, "time": time.time()},
-    "3": {"state": 1, "time": time.time()},
-    "4": {"state": 1, "time": time.time()},
-    "5": {"state": 1, "time": time.time()},
-    "6": {"state": 1, "time": time.time()},
+    "1": {"state": -1, "time": time.time()},
+    "2": {"state": -1, "time": time.time()},
+    "3": {"state": -1, "time": time.time()},
+    "4": {"state": -1, "time": time.time()},
+    "5": {"state": -1, "time": time.time()},
+    "6": {"state": -1, "time": time.time()},
+    "7": {"state": -1, "time": time.time()},
+    "8": {"state": -1, "time": time.time()},
 }  # "ID": {state, lastchanged time}
 g_LED = {
     "1": [Pin(17, Pin.OUT), Pin(16, Pin.OUT)],
@@ -143,6 +144,8 @@ def handle_request(con):
 
 def change_state(id: str, state: str):
     g_state_log[id] = {"state": int(state), "time": time.time()}
+    g_LED[id][int(state)].on()
+    g_LED[id][1 - int(state)].off()
     print(g_state_log)
     return 0
 
