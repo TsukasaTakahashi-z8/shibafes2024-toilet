@@ -1,16 +1,16 @@
 import network
-import socket
 import time
 from machine import Pin
 import _thread
+import gc
+import urequests
 
 TOILET_ID = 0  # 各個室のID(1~)
 SSID = ""
 PWD = ""
-URL = "http://192.168.4.1/"
-BLUE_PIN = 13
-RED_PIN = 14
-HOST = "192.168.4.1"
+BLUE_PIN = 10
+RED_PIN = 9
+HOST = "192.168.4.200"
 PORT = 80
 
 
@@ -89,14 +89,14 @@ def change_led(state):
 
 
 def send_state(state):
-    data = "id={}&state={}".format(TOILET_ID, str(state))
-    soc = socket.socket()
-    soc.connect(socket.getaddrinfo(HOST, PORT)[0][-1])
-    soc.sendall(data.encode())
-    res = soc.recv(256)
-    soc.close()
-    return res.decode()
-
+    print("sender")
+    date = "id="+str(TOILET_ID)+"&state="+str(state)
+    print(date)
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    res = urequests.post("http://" + HOST, data=date, headers=headers)
+    gc.collect()
+    print(res)
+   
 
 def core0():
     global g_restroom_state
@@ -104,13 +104,16 @@ def core0():
     lock = _thread.allocate_lock()
     while True:
         new_restroom_state = get_restroom_state()
+        print('new_restroom_state')
 
         if g_restroom_state != new_restroom_state:
             with lock:
                 g_restroom_state = new_restroom_state
 
             change_led(new_restroom_state)
-            send_state(new_restroom_state)
+            print('change_led')
+            x = send_state(new_restroom_state)
+            print(x)
 
         time.sleep_ms(100)
 
